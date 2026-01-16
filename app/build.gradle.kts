@@ -1,9 +1,17 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
 }
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 
 android {
     namespace = "com.example.tarota5scores"
@@ -21,6 +29,15 @@ android {
         // Configuration pour les tests
         vectorDrawables {
             useSupportLibrary = true
+        }
+
+        signingConfigs {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
         }
     }
 
@@ -85,6 +102,7 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.4.0")
     implementation(libs.identity.jvm)
     implementation(libs.androidx.ui)
+    //implementation(libs.androidx.room.compiler)
 
     // ===== TESTS UNITAIRES LOCAUX =====
     testImplementation(libs.junit)

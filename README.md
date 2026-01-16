@@ -1,1 +1,1 @@
-# TarotA5Scores
+# Tarot à 5 Scores
