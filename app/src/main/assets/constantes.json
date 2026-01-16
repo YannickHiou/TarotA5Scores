@@ -1,0 +1,24 @@
+{
+  "seuils_bouts": [56, 51, 41, 36],
+  "multiplicateurs": {
+    "Petite": 1,
+    "Garde": 2,
+    "GardeSans": 4,
+    "GardeContre": 6,
+    "Chelem": 6
+  },
+  "petit_au_bout": 10,
+  "chelem": {
+    "annonce_reussi": 400,
+    "non_annonce_reussi": 200,
+    "annonce_rate": -200
+  },
+  "misere_penalite": 10,
+  "base_const": 25,
+  "poignee_values": {
+    "NONE": 0,
+    "SIMPLE": 20,
+    "DOUBLE": 30,
+    "TRIPLE": 40
+  }
+}
