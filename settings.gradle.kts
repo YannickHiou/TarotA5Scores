@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "TarotA5Scoress"
+rootProject.name = "TarotA5Scores"
 include(":app")
