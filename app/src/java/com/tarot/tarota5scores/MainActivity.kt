@@ -420,7 +420,6 @@ fun TarotA5ScoressApp() {
         AlertDialog(
             onDismissRequest = { showDonneActionDialog = false; selectedDonneForAction = null },
             title = { Text("Action sur la donne") },
-            //text = { Text("Que souhaites‑tu faire  ?") },
             confirmButton = {
                 // ÉDITER
                 TextButton(onClick = {

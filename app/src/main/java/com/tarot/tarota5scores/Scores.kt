@@ -174,17 +174,17 @@ fun calculateScores(
 
     // Poignees
     trace(TAG, "Avant poignees: $scores")
+    val attaqueGagne = scores[idxPreneur] > 0
     applyPoignees(
         joueurs = joueurs,
         poignees = poignees,
-        idxPreneur = idxPreneur,
-        idxAppelle = idxAppelle,
-        poigneeValues = poigneeValues,
+        poigneeValues = constantes.poignee_values,
         weights = weights,
         scores = scores,
-        contrat = contratEffective,
+        attaqueGagne = attaqueGagne,
         TAG = TAG
     )
+
     trace(TAG, "Après poignees: $scores")
 
     // Miseres
@@ -267,16 +267,13 @@ private fun applyPetitAuBout(
     trace(TAG, "Scores après application petit au bout: $scores")
 }
 
-//  Fonction applyPoignees corrigée
 private fun applyPoignees(
     joueurs: List<String>,
     poignees: Map<String, PoigneeType>,
-    idxPreneur: Int,
-    idxAppelle: Int,
     poigneeValues: Map<String, Int>,
     weights: List<Int>,
     scores: MutableList<Int>,
-    contrat: String,
+    attaqueGagne: Boolean,
     TAG: String
 ) {
     if (poignees.isEmpty()) {
@@ -284,23 +281,38 @@ private fun applyPoignees(
         return
     }
 
+    // Les poignées sont des primes de camp :
+    // - elles gardent toujours la même valeur (20/30/40)
+    // - elles vont toujours au camp vainqueur de la donne (règle FFT)
+    // Donc : le signe ne dépend PAS de qui a montré la poignée,
+    // mais UNIQUEMENT de qui a gagné la donne (attaque ou défense).
+
+    // Si l'attaque gagne, on utilise weights tel quel (prime pour attaque).
+    // Si la défense gagne, on inverse les signes (prime pour défense).
+    val appliedWeights = if (attaqueGagne) {
+        weights
+    } else {
+        weights.map { -it }
+    }
+
     for ((nom, type) in poignees) {
         val idx = joueurs.indexOf(nom)
-        if (idx < 0) continue
+        if (idx < 0) {
+            trace(TAG, "Poignee déclarée par '$nom' non trouvé -> ignorée")
+            continue
+        }
 
-        val base = poigneeValues[type.name] ?: continue
+        val base = poigneeValues[type.name] ?: 0
 
-        //  CORRECTION : Ignorer les poignées NONE
-        if (base == 0 || type.name == "NONE") {
+        // Ignorer les poignées NONE ou valeur 0
+        if (base == 0 || type == PoigneeType.NONE) {
             trace(TAG, "Poignee ${type.name} de $nom ignorée (valeur 0)")
             continue
         }
 
-        val holderIsAttaque = (idx == idxPreneur || idx == idxAppelle)
-        val appliedWeights = if (holderIsAttaque) weights else weights.map { -it }
+        trace(TAG, "Poignee ${type.name} déclarée par $nom (index $idx): base=$base, attaqueGagne=$attaqueGagne")
 
-        trace(TAG, "Poignee ${type.name} déclarée par ${nom} (index $idx): base=$base")
-
+        // On applique la prime en fonction du camp gagnant
         for (i in joueurs.indices) {
             scores[i] += appliedWeights[i] * base
         }

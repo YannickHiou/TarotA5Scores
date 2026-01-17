@@ -37,6 +37,39 @@ class CalculateScoresTest {
 
     val joueurs = listOf("A", "B", "C", "D", "E")
 
+
+    @Test
+    fun A_BCDE_paspetitaubout_poignee_misere_gagnee() {
+        val preneur = "A"
+        val appelle = "A"
+        val contrat = "Garde"
+        val nbBoutsAttaque = 3
+        val pointsAtq = 82
+        val miseres = listOf("C")
+        val petitAuBout: PetitAuBoutIndex? = null
+        val poignees = mapOf("C" to PoigneeType.SIMPLE)
+
+
+        val result = calculateScores(
+            joueurs = joueurs,
+            preneur = preneur,
+            appelle = appelle,
+            contrat = contrat,
+            pointsAtq = pointsAtq,
+            nbBoutsAttaque = nbBoutsAttaque,
+            miseres = miseres,
+            petitAuBout = petitAuBout,
+            poignees = poignees,
+            chelem = null,
+            constantes = constantes,
+            poigneeValues = constantes.poignee_values
+        )
+
+        val expected = listOf(638, -172, -122, -172, -172)
+        assertEquals(expected, result)
+    }
+
+
     @Test
     fun AB_CDE_paspetitaubout_paspoignee_pasmisere_gagnee() {
         val preneur = "A"
@@ -273,7 +306,7 @@ class CalculateScoresTest {
             poigneeValues = constantes.poignee_values
         )
 
-        val expected = listOf(96, 48, -48, -48, -48)
+        val expected = listOf(176, 88, -88, -88, -88)
         assertEquals(expected, result)
     }
 
@@ -304,7 +337,7 @@ class CalculateScoresTest {
             poigneeValues = constantes.poignee_values
         )
 
-        val expected = listOf(-104, -52, 52, 52, 52)
+        val expected = listOf(-184, -92, 92, 92, 92)
         assertEquals(expected, result)
     }
 
@@ -454,7 +487,7 @@ class CalculateScoresTest {
             poigneeValues = constantes.poignee_values
         )
 
-        val expected = listOf(-58, 2, 52, 2, 2)
+        val expected = listOf(-378, 82, 132, 82, 82)
         assertEquals(expected, result)
     }
 
@@ -514,7 +547,7 @@ class CalculateScoresTest {
             poigneeValues = constantes.poignee_values
         )
 
-        val expected = listOf(-218, 42, 92, 42, 42)
+        val expected = listOf(-538, 122, 172, 122, 122)
         assertEquals(expected, result)
     }
 
@@ -619,7 +652,7 @@ class CalculateScoresTest {
             poigneeValues = constantes.poignee_values
         )
 
-        val expected = listOf(-790, -400, 430, 380, 380)
+        val expected = listOf(-870, -440, 470, 420, 420)
         assertEquals(expected, result)
     }
 
