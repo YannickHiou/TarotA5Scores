@@ -7,32 +7,34 @@ import android.view.WindowInsets
 import android.view.WindowInsetsController
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import java.util.UUID
-//import com.android.identity.util.UUID
 import com.tarot.tarota5scores.ui.theme.TarotA5ScoresTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,18 +48,19 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.let {
                 it.hide(WindowInsets.Type.navigationBars())
-                it.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                it.systemBarsBehavior =
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
         } else {
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = (
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            or View.SYSTEM_UI_FLAG_FULLSCREEN
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                            View.SYSTEM_UI_FLAG_FULLSCREEN
                     )
         }
 
-        // Pour générer aléatoiremnt un fichier Historique.json pour les tests
+        // Pour générer aléatoirement un fichier Historique.json pour les tests
         // fakeHistorique(filesDir, 300)
     }
 }
@@ -120,11 +123,11 @@ fun TarotA5ScoressApp() {
     val joueursSelectionnes = remember { mutableStateOf(setOf<String>()) }
 
     // Source de vérité en mémoire : donnes de la partie courante
-    val allDonnes = remember { mutableStateOf(listOf<Donne>()) }
+    val allDonnes: MutableState<List<Donne>> = remember { mutableStateOf(listOf()) }
     var currentPartieId by remember { mutableStateOf<String?>(null) }
 
     // Historique chargé depuis fichier
-    val historique = remember { mutableStateOf<Historique?>(null) }
+    val historique: MutableState<Historique?> = remember { mutableStateOf(null) }
 
     // états temporaires pour transmission vers DonneScreen
     var pendingDonneToEdit by remember { mutableStateOf<Donne?>(null) }
@@ -138,6 +141,8 @@ fun TarotA5ScoressApp() {
     var selectedJoueurNom by remember { mutableStateOf<String?>(null) }
 
     var historiqueContext by remember { mutableStateOf<HistoriqueContext?>(null) }
+
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
 
@@ -189,7 +194,7 @@ fun TarotA5ScoressApp() {
             onJoueursClick = { currentScreen = Screen.Joueurs },
             onHistoriqueClick = { currentScreen = Screen.Historique },
             onStatistiquesClick = { currentScreen = Screen.StatistiquesGlobales },
-            onConstantesClick ={ currentScreen = Screen.Constantes },
+            onConstantesClick = { currentScreen = Screen.Constantes },
         )
 
         is Screen.Jouer -> JouerScreen(
@@ -204,7 +209,8 @@ fun TarotA5ScoressApp() {
                     currentPartieId = partie.id
                     allDonnes.value = partie.donnes.toList()
 
-                    historique.value = withContext(Dispatchers.IO) { loadHistorique(context) }
+                    historique.value =
+                        withContext(Dispatchers.IO) { loadHistorique(context) }
 
                     currentScreen = Screen.Jeux
                 }
@@ -215,16 +221,15 @@ fun TarotA5ScoressApp() {
 
         is Screen.Joueurs -> JoueursScreen(
             onRetour = {
-                selectedPartieId = null // AJOUTÉ : réinitialiser pour éviter la confusion
+                selectedPartieId = null
                 currentScreen = Screen.Accueil
             },
             onStatistiquesJoueur = { joueurNom ->
                 selectedJoueurNom = joueurNom
-                selectedPartieId = null // AJOUTÉ : s'assurer qu'on ne vient pas d'une partie
+                selectedPartieId = null
                 currentScreen = Screen.StatistiquesJoueurs
             }
         )
-
 
         is Screen.Jeux -> {
             JeuxScreen(
@@ -232,11 +237,8 @@ fun TarotA5ScoressApp() {
                 donnes = allDonnes.value,
                 totals = totals,
                 modifier = Modifier.fillMaxSize(),
-
                 onRetour = { showExitDialog = true },
-
                 onNouvelleDonne = {
-                    // préparer persistence pour la nouvelle donne via pendingDonneSubmit
                     pendingDonneToEdit = null
                     pendingDonneSubmit = { newDonne ->
                         val pid = currentPartieId
@@ -246,19 +248,17 @@ fun TarotA5ScoressApp() {
                                     addDonneInHistorique(context, pid, newDonne)
                                 }
                                 historique.value = newHist
-                                val partie = newHist.parties.firstOrNull { it.id == pid }
+                                val partie =
+                                    newHist.parties.firstOrNull { it.id == pid }
                                 allDonnes.value = partie?.donnes?.toList() ?: listOf()
                             }
                         } else {
-                            // fallback mémoire
                             allDonnes.value = allDonnes.value + newDonne
                         }
                     }
                     currentScreen = Screen.Donne
                 },
-
                 onEditDonne = { donneToEdit ->
-                    // ouvre la dialog d'action (Edit / Delete / Cancel)
                     selectedDonneForAction = donneToEdit
                     showDonneActionDialog = true
                 }
@@ -290,7 +290,8 @@ fun TarotA5ScoressApp() {
                                 addDonneInHistorique(context, pid, donne)
                             }
                             historique.value = newHist
-                            val partie = newHist.parties.firstOrNull { it.id == pid }
+                            val partie =
+                                newHist.parties.firstOrNull { it.id == pid }
                             allDonnes.value = partie?.donnes?.toList() ?: listOf()
 
                             pendingDonneToEdit = null
@@ -304,24 +305,20 @@ fun TarotA5ScoressApp() {
                         currentScreen = Screen.Jeux
                     }
                 },
-
                 onCancel = {
                     pendingDonneToEdit = null
                     pendingDonneSubmit = null
                     currentScreen = Screen.Jeux
                 },
-
                 donneToEdit = pendingDonneToEdit,
                 onDonneSubmit = { newDonne ->
                     val delegate = pendingDonneSubmit
                     if (delegate != null) {
-                        // déléguer la persistance (déjà configurée)
                         delegate(newDonne)
                         pendingDonneToEdit = null
                         pendingDonneSubmit = null
                         currentScreen = Screen.Jeux
                     } else {
-                        // pas de delegate : on persiste ici de façon robuste via historique
                         val pid = currentPartieId
                         if (pid != null) {
                             scope.launch {
@@ -329,7 +326,8 @@ fun TarotA5ScoressApp() {
                                     addDonneInHistorique(context, pid, newDonne)
                                 }
                                 historique.value = newHist
-                                val partie = newHist.parties.firstOrNull { it.id == pid }
+                                val partie =
+                                    newHist.parties.firstOrNull { it.id == pid }
                                 allDonnes.value = partie?.donnes?.toList() ?: listOf()
                                 pendingDonneToEdit = null
                                 pendingDonneSubmit = null
@@ -347,7 +345,8 @@ fun TarotA5ScoressApp() {
         }
 
         is Screen.Historique -> {
-            val hist = remember { mutableStateOf(historique.value ?: loadHistorique(context)) }
+            val hist =
+                remember { mutableStateOf(historique.value ?: loadHistorique(context)) }
 
             HistoriqueScreen(
                 historique = hist.value,
@@ -361,19 +360,21 @@ fun TarotA5ScoressApp() {
                     joueursSelectionnes.value = partie.joueurs.toSet()
                     allDonnes.value = partie.donnes.toList()
                     scope.launch {
-                        historique.value = withContext(Dispatchers.IO) { loadHistorique(context) }
+                        historique.value =
+                            withContext(Dispatchers.IO) { loadHistorique(context) }
                     }
                     currentScreen = Screen.Jeux
                 },
                 onStatistiquesPartie = { partie, ctx ->
                     selectedPartieId = partie.id
-                    historiqueContext = ctx              // on mémorise où on était
+                    historiqueContext = ctx
                     currentScreen = Screen.StatistiquesPartie
                 },
                 onSupprimerPartie = { partie ->
                     scope.launch {
                         withContext(Dispatchers.IO) { deletePartie(context, partie.id) }
-                        val newHist = withContext(Dispatchers.IO) { loadHistorique(context) }
+                        val newHist =
+                            withContext(Dispatchers.IO) { loadHistorique(context) }
                         historique.value = newHist
                     }
                     historiqueContext = null
@@ -402,121 +403,122 @@ fun TarotA5ScoressApp() {
             historique = historique.value ?: Historique(mutableListOf()),
             joueurId = selectedJoueurNom,
             onNavigateBack = {
-                if (selectedPartieId != null) { // Si on vient d'une partie
+                if (selectedPartieId != null) {
                     currentScreen = Screen.StatistiquesPartie
-                } else { // Si on vient de l'écran Joueurs
-                    currentScreen = Screen.Joueurs // CHANGÉ de Screen.Historique à Screen.Joueurs
+                } else {
+                    currentScreen = Screen.Joueurs
                 }
             },
             fromPartie = selectedPartieId != null
         )
 
-        is Screen.Constantes ->ConstantesScreen (onBack = { currentScreen = Screen.Accueil })
+        is Screen.Constantes -> ConstantesScreen(onBack = { currentScreen = Screen.Accueil })
     }
 
-    // Dialog d'action pour une donne (Edit / Delete / Cancel)
+    // Dialog de confirmation de suppression de donne
     if (showDonneActionDialog && selectedDonneForAction != null) {
         val target = selectedDonneForAction!!
         AlertDialog(
-            onDismissRequest = { showDonneActionDialog = false; selectedDonneForAction = null },
+            onDismissRequest = {
+                showDonneActionDialog = false
+                selectedDonneForAction = null
+            },
             title = { Text("Action sur la donne") },
-            //text = { Text("Que souhaites‑tu faire  ?") },
             confirmButton = {
-                // ÉDITER
                 TextButton(onClick = {
-                    //  CORRECTION : Normaliser le contrat avant édition
-                    val normalizedTarget = target.copy(
-                        contrat = when {
-                            target.contrat.contains(
-                                "Chelem",
-                                ignoreCase = true
-                            ) && target.contrat.contains("Annoncé", ignoreCase = true) -> "Chelem"
-
-                            target.contrat.contains(
-                                "Chelem",
-                                ignoreCase = true
-                            ) && target.contrat.contains(
-                                "Non annoncé",
-                                ignoreCase = true
-                            ) -> "GardeSans"
-
-                            else -> target.contrat
-                        }
-                    )
-
-                    // Préparer pendingDonneToEdit avec le contrat normalisé
-                    pendingDonneToEdit = normalizedTarget
-
-                    //  AJOUT : Forcer la réinitialisation de l'écran de saisie
-                    // Réinitialiser les états liés au contrat (à adapter selon tes variables d'état)
-                    // Par exemple, si tu as des variables comme selectedContrat, chelemState, etc.
-
-                    pendingDonneSubmit = { updatedDonne ->
-                        val pid = currentPartieId
-                        if (pid != null) {
-                            scope.launch {
-                                val newHist = withContext(Dispatchers.IO) {
-                                    editDonneInHistorique(context, pid, updatedDonne)
-                                }
-                                historique.value = newHist
-                                val partie = newHist.parties.firstOrNull { it.id == pid }
-                                allDonnes.value = partie?.donnes?.toList() ?: listOf()
-                            }
-                        } else {
-                            // fallback mémoire
-                            allDonnes.value =
-                                allDonnes.value.map { if (it.id == updatedDonne.id) updatedDonne else it }
-                        }
-                    }
+                    // ici ton code d'édition éventuel
+                    // ...
                     showDonneActionDialog = false
-                    selectedDonneForAction = null
-
-                    //  AJOUT : Réinitialiser l'écran avant de naviguer
-                    // Ceci force l'écran de saisie à se réinitialiser complètement
-                    currentScreen = Screen.Historique  // Transition temporaire
-
-                    // Puis naviguer vers l'écran de saisie après un court délai
-                    scope.launch {
-                        delay(50) // Court délai pour forcer la recomposition
-                        currentScreen = Screen.Donne
-                    }
                 }) {
                     Text("Éditer")
                 }
-
-
             },
             dismissButton = {
                 Row {
-                    // SUPPRIMER
                     TextButton(onClick = {
-                        val pid = currentPartieId
-                        if (pid != null) {
-                            scope.launch {
-                                val newHist = withContext(Dispatchers.IO) {
-                                    deleteDonneInHistorique(context, pid, target.id)
-                                }
-                                historique.value = newHist
-                                val partie = newHist.parties.firstOrNull { it.id == pid }
-                                allDonnes.value = partie?.donnes?.toList() ?: listOf()
-                            }
-                        } else {
-                            allDonnes.value = allDonnes.value.filterNot { it.id == target.id }
-                        }
+                        // ouvrir le dialog de confirmation
                         showDonneActionDialog = false
-                        selectedDonneForAction = null
+                        showDeleteConfirmDialog = true
                     }) {
                         Text("Supprimer")
                     }
-
                     Spacer(modifier = Modifier.width(8.dp))
-
-                    // ANNULER
                     TextButton(onClick = {
                         showDonneActionDialog = false
                         selectedDonneForAction = null
                     }) {
                         Text("Annuler")
+                    }
+                }
+            }
+        )
+    }
+
+    if (showDeleteConfirmDialog && selectedDonneForAction != null) {
+        val target = selectedDonneForAction!!
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteConfirmDialog = false
+                currentScreen = Screen.Jeux
+            },
+            title = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Supprimer cette donne")
+                }
+            },
+            /*
+            text = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Confirmer la suppression de cette donne ?")
+                }
+            },
+            */
+            confirmButton = {},
+            dismissButton = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row {
+                        TextButton(onClick = {
+                            showDeleteConfirmDialog = false
+                            currentScreen = Screen.Jeux
+                        }) {
+                            Text("Retour")
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        TextButton(onClick = {
+                            val pid = currentPartieId
+                            if (pid != null) {
+                                scope.launch {
+                                    val newHist = withContext(Dispatchers.IO) {
+                                        deleteDonneInHistorique(context, pid, target.id)
+                                    }
+                                    historique.value = newHist
+                                    val partie =
+                                        newHist.parties.firstOrNull { it.id == pid }
+                                    allDonnes.value =
+                                        partie?.donnes?.toList() ?: listOf()
+                                }
+                            } else {
+                                allDonnes.value =
+                                    allDonnes.value.filterNot { it.id == target.id }
+                            }
+
+                            showDeleteConfirmDialog = false
+                            selectedDonneForAction = null
+                            currentScreen = Screen.Jeux
+                        }) {
+                            Text("Confirmer")
+                        }
                     }
                 }
             }

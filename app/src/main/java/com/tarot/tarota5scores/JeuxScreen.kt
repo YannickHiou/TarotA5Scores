@@ -42,7 +42,6 @@ fun JeuxScreen(
             .fillMaxSize()
             .background(Color(0xFF00BCD4)) // bleu cyan
     ) {
-        // Zone principale : on applique statusBarsPadding pour ne pas écrire sous la status bar
         Column(
             modifier = Modifier
                 .fillMaxSize()
