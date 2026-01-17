@@ -116,7 +116,7 @@ https://yannickhiou.github.io/TarotA5Scores/privacy-policy.html
 
 ## Support
 
-Contact : yannick.hiou@orange.com  
+Contact : yannick.hiou@gmail.com  
 
 ---
 
