@@ -1,5 +1,25 @@
+/*
+ * TarotA5Scores - Application de gestion des scores de Tarot à 5
+ * Copyright (C) 2025  Yannick Hiou
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.tarot.tarota5scores
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -29,14 +49,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import com.tarot.tarota5scores.ui.theme.TarotA5ScoresTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.util.UUID
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -62,6 +85,40 @@ class MainActivity : ComponentActivity() {
 
         // Pour générer aléatoirement un fichier Historique.json pour les tests
         // fakeHistorique(filesDir, 300)
+    }
+
+    /**
+     * Ouvre un PDF situé dans les assets (ex: "R-RO201206.pdf")
+     * en le copiant dans le cache puis en lançant un Intent ACTION_VIEW.
+     */
+    fun openPdfFromAssets(fileName: String) {
+        val context = this
+
+        // 1. Copier le PDF des assets vers un fichier temporaire dans le cache
+        val inputStream = context.assets.open(fileName)
+        val tempFile = File.createTempFile("regles_fft_", ".pdf", context.cacheDir)
+        tempFile.outputStream().use { output ->
+            inputStream.copyTo(output)
+        }
+
+        // 2. Obtenir un Uri via FileProvider
+        val pdfUri: Uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            tempFile
+        )
+
+        // 3. Créer l'Intent pour ouvrir le PDF
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(pdfUri, "application/pdf")
+            flags = Intent.FLAG_ACTIVITY_NO_HISTORY or
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+        }
+
+        // 4. Démarrer l'Activity (choix de l'app PDF)
+        context.startActivity(
+            Intent.createChooser(intent, "Ouvrir les règles FFT avec")
+        )
     }
 }
 
@@ -183,6 +240,7 @@ fun TarotA5ScoressApp() {
         acc.toList()
     }
 
+    // Navigation principale
     when (currentScreen) {
         is Screen.Accueil -> AccueilScreen(
             onJouerClick = {
@@ -195,6 +253,9 @@ fun TarotA5ScoressApp() {
             onHistoriqueClick = { currentScreen = Screen.Historique },
             onStatistiquesClick = { currentScreen = Screen.StatistiquesGlobales },
             onConstantesClick = { currentScreen = Screen.Constantes },
+            onReglesClick = {
+                (context as? MainActivity)?.openPdfFromAssets("R-RO201206.pdf")
+            }
         )
 
         is Screen.Jouer -> JouerScreen(
@@ -469,16 +530,6 @@ fun TarotA5ScoressApp() {
                     Text("Supprimer cette donne")
                 }
             },
-            /*
-            text = {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Confirmer la suppression de cette donne ?")
-                }
-            },
-            */
             confirmButton = {},
             dismissButton = {
                 Box(

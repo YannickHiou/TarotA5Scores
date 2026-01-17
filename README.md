@@ -109,7 +109,7 @@ https://yannickhiou.github.io/TarotA5Scores/privacy-policy.html
 
 ## Open source
 
-- Licence : **MIT**  
+- Licence : **GPL v3**  
 - Code source : https://github.com/YannickHiou/TarotA5Scores  
 
 ---
