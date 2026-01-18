@@ -52,7 +52,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.tarot.tarota5scores.ui.theme.TarotA5ScoresTheme
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -487,9 +486,21 @@ fun TarotA5ScoressApp() {
             title = { Text("Action sur la donne") },
             confirmButton = {
                 TextButton(onClick = {
-                    // ici ton code d'édition éventuel
-                    // ...
+                    // 1. Donner à DonneScreen la donne à éditer
+                    pendingDonneToEdit = target
+
+                    // 2. Dire quoi faire quand l’édition sera validée :
+                    //    remplacer cette donne par la nouvelle dans allDonnes
+                    pendingDonneSubmit = { newDonne ->
+                        allDonnes.value = allDonnes.value.map {
+                            if (it.id == target.id) newDonne else it
+                        }
+                    }
+
+                    // 3. Fermer ce dialog et aller sur DonneScreen
                     showDonneActionDialog = false
+                    selectedDonneForAction = null
+                    currentScreen = Screen.Donne
                 }) {
                     Text("Éditer")
                 }
